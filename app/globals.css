@@ -1,3 +1,24 @@
+/* globals.css */
+
+:root {
+  --bg: #020617;
+  --bg-card: #020817;
+  --text: #f9fafb;
+  --text-muted: #9ca3af;
+  --accent: #fbbf24;
+  --border-subtle: rgba(255,255,255,0.1);
+}
+
+/* quando um dia vier o tema claro */
+.light {
+  --bg: #f9fafb;
+  --bg-card: #ffffff;
+  --text: #020617;
+  --text-muted: #4b5563;
+  --accent: #d97706;
+  --border-subtle: rgba(15,23,42,0.1);
+}
+
 @import "tailwindcss";
 
 :root {
