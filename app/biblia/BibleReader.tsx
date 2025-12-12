@@ -9,7 +9,6 @@ const VERSIONS = [
   { value: "ntlh", label: "Nova Tradução na Linguagem de Hoje (NTLH)" },
 ];
 
-// 👉 Depois você pode substituir por sua lista completa de livros do projeto Gatsby
 const RAW_BOOKS: [string, string, number][] = [
   ["gn","Gênesis",50],["ex","Êxodo",40],["lv","Levítico",27],["nm","Números",36],["dt","Deuteronômio",34],
   ["js","Josué",24],["jz","Juízes",21],["rt","Rute",4],["1sm","1 Samuel",31],["2sm","2 Samuel",24],

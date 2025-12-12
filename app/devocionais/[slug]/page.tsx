@@ -2,12 +2,24 @@
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { getDevotionalBySlug } from "@/app/services/devotionals";
+import { getDevotionalBySlug, listDevotionals } from "@/app/services/devotionals";
 
 // Next 16 + React 19: params é Promise
 type DevocionalPageProps = {
   params: Promise<{ slug: string }>;
 };
+
+// 👇 gera as rotas estáticas (equivalente a getStaticPaths)
+export async function generateStaticParams() {
+  const devos = await listDevotionals();
+
+  return devos.map((devo) => ({
+    slug: devo.slug,
+  }));
+}
+
+// 👇 garante SSG + revalidate, igual à lista
+export const revalidate = 60;
 
 export default async function DevocionalPage({ params }: DevocionalPageProps) {
   const { slug } = await params;
@@ -28,20 +40,21 @@ export default async function DevocionalPage({ params }: DevocionalPageProps) {
       <div className="max-w-3xl mx-auto px-4 py-8">
         {/* capa */}
         {devo.coverImage && (
-        <div className="mb-6 rounded-2xl overflow-hidden border border-white/10 bg-black/40">
+          <div className="mb-6 rounded-2xl overflow-hidden border border-white/10 bg-black/40">
             <div className="relative w-full aspect-[21/9]">
-            <Image
+              <Image
                 src={devo.coverImage}
                 alt={devo.title}
                 fill
+                unoptimized
                 className="object-cover"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-            <div className="absolute bottom-3 left-4 text-[11px] uppercase tracking-[0.18em] text-amber-200">
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+              <div className="absolute bottom-3 left-4 text-[11px] uppercase tracking-[0.18em] text-amber-200">
                 {dateLabel} · {devo.readingRef}
+              </div>
             </div>
-            </div>
-        </div>
+          </div>
         )}
 
         {/* cabeçalho */}
@@ -59,7 +72,7 @@ export default async function DevocionalPage({ params }: DevocionalPageProps) {
 
         {/* conteúdo */}
         <article className="text-sm leading-relaxed text-gray-100 space-y-3">
-          {devo.content.map((paragraph, idx) => (
+          {devo.content.map((paragraph: string, idx: number) => (
             <p key={idx}>{paragraph}</p>
           ))}
         </article>

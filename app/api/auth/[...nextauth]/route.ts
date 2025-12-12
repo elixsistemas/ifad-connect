@@ -2,8 +2,9 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { verifyUserPassword } from "@/app/services/user";
+import { prisma } from "@/app/lib/prisma";
+import type { AppRole } from "@/types/next-auth"; 
 
-// 👉 exporta a configuração
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
@@ -29,38 +30,62 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Credenciais inválidas");
         }
 
-        // O que vai para o token/session
+        // Aqui o objeto precisa bater com o tipo User que definimos no .d.ts
         return {
           id: user.id,
           name: user.name,
           email: user.email,
-          role: user.role,
+          role: user.role as any,
         };
       },
     }),
   ],
+
   callbacks: {
+    async signIn({ user }) {
+      try {
+        const userId = user?.id;
+        if (!userId) return true;
+
+        await prisma.user.update({
+          where: { id: userId },
+          data: {
+            lastLoginAt: new Date(),
+            lastActivityAt: new Date(),
+          },
+        });
+      } catch (err) {
+        console.error("Erro ao registrar lastLoginAt/lastActivityAt:", err);
+      }
+      return true;
+    },
+
     async jwt({ token, user }) {
       if (user) {
-        token.id = (user as any).id;
-        token.role = (user as any).role;
+        token.id = user.id;
+        token.role = user.role;
       }
       return token;
     },
+
     async session({ session, token }) {
-      if (token) {
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role;
+      if (session.user) {
+        if (token.id) {
+          session.user.id = token.id;
+        }
+        if (token.role) {
+          session.user.role = token.role;
+        }
       }
       return session;
     },
   },
+
   pages: {
     signIn: "/login",
   },
 };
 
-// 👉 o handler passa a usar as opções exportadas
 const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST };

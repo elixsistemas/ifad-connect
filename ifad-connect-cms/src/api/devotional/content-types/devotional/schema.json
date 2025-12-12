@@ -1,0 +1,49 @@
+{
+  "kind": "collectionType",
+  "collectionName": "devotionals",
+  "info": {
+    "singularName": "devotional",
+    "pluralName": "devotionals",
+    "displayName": "Devotional"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "slug": {
+      "type": "string"
+    },
+    "date": {
+      "type": "date"
+    },
+    "readingRef": {
+      "type": "string"
+    },
+    "subtitle": {
+      "type": "string"
+    },
+    "highlight": {
+      "type": "text"
+    },
+    "excerpt": {
+      "type": "text"
+    },
+    "content": {
+      "type": "blocks"
+    },
+    "coverImage": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    }
+  }
+}

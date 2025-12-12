@@ -7,12 +7,148 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  MEMBER
+  LEADER
+  ADMIN
+}
+
+enum PrayerStatus {
+  PENDING
+  ANSWERED
+}
+
+enum ReadingPlanStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+enum AchievementType {
+  PLAN_COMPLETED_TOTAL      // total de planos concluídos (qualquer plano)
+  PLAN_COMPLETED_SPECIFIC   // plano específico concluído N vezes
+  PLAN_SUBSCRIBED_TOTAL     // total de inscrições em planos (execuções iniciadas)
+  BIBLE_COMPLETED           // “Toda a Bíblia” (critério que você definir)
+}
+
 model User {
   id        String   @id @default(cuid())
   name      String
   email     String   @unique
   password  String
-  role      String   @default("MEMBER")
+  role      Role     @default(MEMBER)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  /// Monitoramento de uso
+  lastLoginAt    DateTime?
+  lastActivityAt DateTime?
+
+  /// RELAÇÃO DE DISCIPULADO / GRUPO
+  /// leaderId = líder principal (mentor) desse usuário
+  leaderId  String?
+  leader    User?   @relation("UserLeader", fields: [leaderId], references: [id])
+  disciples User[]  @relation("UserLeader")
+
+  /// PEDIDOS DE ORAÇÃO
+  /// - prayerRequests: pedidos que esse usuário enviou
+  /// - prayersAsLeader: pedidos que esse usuário recebeu como líder
+  prayerRequests  PrayerRequest[] @relation("PrayerOwner")
+  prayersAsLeader PrayerRequest[] @relation("PrayerLeader")
+
+  /// REUNIÕES (encontros) onde esse usuário é o líder
+  meetings Meeting[]
+
+  /// EXECUÇÕES DE PLANOS DE LEITURA (cada vez que entra em um plano)
+  readingPlanRuns ReadingPlanRun[]
+
+  /// CONQUISTAS / MEDALHAS (contadores agregados)
+  achievements UserAchievement[]
+}
+
+model PrayerRequest {
+  id          String       @id @default(cuid())
+
+  /// Quem fez o pedido
+  userId      String
+
+  /// Líder para quem o pedido foi direcionado
+  leaderId    String?
+
+  subject     String
+  message     String
+  response    String?
+  status      PrayerStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+  respondedAt DateTime?
+
+  /// Dono do pedido (sempre existe)
+  user   User @relation("PrayerOwner", fields: [userId], references: [id])
+
+  /// Líder que recebeu o pedido (pode ser nulo, ex: pedido geral)
+  leader User? @relation("PrayerLeader", fields: [leaderId], references: [id])
+}
+
+model Meeting {
+  id          String   @id @default(cuid())
+  leaderId    String
+  title       String
+  description String?
+  meetingDate DateTime
+  createdAt   DateTime @default(now())
+
+  leader User @relation(fields: [leaderId], references: [id])
+}
+
+/// Cada “run” é uma vez que o usuário entra em um plano de leitura.
+/// Ex: Plano “Novo Testamento em 90 dias” pode ter 3 execuções
+/// diferentes para o mesmo usuário (3 vezes lido).
+model ReadingPlanRun {
+  id        String   @id @default(cuid())
+
+  /// Dono da caminhada
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  /// Referência ao plano no Strapi (slug como chave estável)
+  planSlug  String
+
+  /// Número da “vez” (1ª, 2ª, 3ª vez que esse usuário faz esse plano)
+  iteration Int      @default(1)
+
+  /// Estado atual dessa execução
+  status    ReadingPlanStatus @default(IN_PROGRESS)
+
+  /// Progresso dentro do plano
+  currentDay     Int      @default(1)   // dia atual (1..totalDays)
+  totalDays      Int?                  // opcional: cópia de durationDays do Strapi
+  startedAt      DateTime @default(now())
+  completedAt    DateTime?
+  lastActivityAt DateTime @updatedAt
+
+  @@index([userId, planSlug])
+  @@index([userId, status])
+}
+
+/// Conquistas agregadas por usuário, para gamificação / medalhas.
+/// Você pode preencher isso em cima dos dados de ReadingPlanRun
+/// (por jobs, triggers na aplicação, etc.).
+model UserAchievement {
+  id         String          @id @default(cuid())
+
+  userId     String
+  user       User            @relation(fields: [userId], references: [id])
+
+  type       AchievementType
+
+  /// Para conquistas ligadas a um plano específico (opcional).
+  /// Ex: “Concluiu o plano X 5 vezes”.
+  planSlug   String?
+
+  /// Contador dessa conquista (ex: total de planos concluídos, etc.)
+  count      Int             @default(0)
+
+  lastEarnedAt DateTime?
+
+  @@unique([userId, type, planSlug])
 }

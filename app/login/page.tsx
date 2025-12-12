@@ -5,12 +5,20 @@ import { FormEvent, useState } from "react";
 import { signIn } from "next-auth/react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // se alguém veio de /member ou /leader, virá com ?callbackUrl=/member, etc.
+  // se não tiver, padrão é voltar pra home "/"
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -21,6 +29,7 @@ export default function LoginPage() {
       email,
       password,
       redirect: false,
+      callbackUrl,
     });
 
     setLoading(false);
@@ -30,7 +39,8 @@ export default function LoginPage() {
       return;
     }
 
-    window.location.href = "/dashboard";
+    // login OK → volta para a URL de origem (ou "/" se não tinha nenhuma)
+    router.push(callbackUrl);
   }
 
   return (
@@ -65,9 +75,7 @@ export default function LoginPage() {
           className="bg-slate-950/80 border border-slate-700/80 rounded-2xl shadow-xl shadow-black/40 px-8 py-7 space-y-5 backdrop-blur"
         >
           <div className="text-center space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Entrar
-            </h1>
+            <h1 className="text-2xl font-semibold tracking-tight">Entrar</h1>
             <p className="text-xs text-slate-400">
               Acesse com sua conta para continuar a leitura
             </p>
@@ -82,7 +90,7 @@ export default function LoginPage() {
                 type="email"
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="seuemail@exemplo.com"
                 required
               />
@@ -96,7 +104,7 @@ export default function LoginPage() {
                 type="password"
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 transition"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
               />

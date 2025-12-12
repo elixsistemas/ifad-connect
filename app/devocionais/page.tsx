@@ -11,6 +11,9 @@ export const metadata: Metadata = {
     "Leia devocionais diários conectados à leitura bíblica na plataforma IFAD Connect.",
 };
 
+// 👇 aqui você diz pro Next: gera estático e revalida a cada 60s
+export const revalidate = 60;
+
 export default async function DevocionaisPage() {
   const devos = await listDevotionals();
 
@@ -19,37 +22,36 @@ export default async function DevocionaisPage() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* topo */}
         <header className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-        <div className="space-y-3">
+          <div className="space-y-3">
             {/* selo IFAD CONNECT reutilizável */}
             <BrandBadge />
 
             <div>
-            <h1 className="text-2xl md:text-3xl font-semibold">
+              <h1 className="text-2xl md:text-3xl font-semibold">
                 Devocionais
-            </h1>
-            <p className="text-sm text-gray-200 mt-2 max-w-xl">
+              </h1>
+              <p className="text-sm text-gray-200 mt-2 max-w-xl">
                 Mensagens curtas para acompanhar sua leitura bíblica, ajudar na
                 reflexão diária e fortalecer sua fé em Cristo.
-            </p>
+              </p>
             </div>
-        </div>
+          </div>
 
-        <nav className="text-xs flex flex-row md:flex-col items-end gap-3 md:gap-1">
+          <nav className="text-xs flex flex-row md:flex-col items-end gap-3 md:gap-1">
             <Link
-            href="/"
-            className="text-gray-300 hover:text-amber-300 transition"
+              href="/"
+              className="text-gray-300 hover:text-amber-300 transition"
             >
-            Voltar para o início
+              Voltar para o início
             </Link>
             <Link
-            href="/biblia"
-            className="text-gray-400 hover:text-amber-300 transition"
+              href="/biblia"
+              className="text-gray-400 hover:text-amber-300 transition"
             >
-            Ir para leitura bíblica
+              Ir para leitura bíblica
             </Link>
-        </nav>
+          </nav>
         </header>
-
 
         {/* grade de cards */}
         <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 auto-rows-fr">
@@ -66,21 +68,20 @@ export default async function DevocionaisPage() {
                 href={`/devocionais/${devo.slug}`}
                 className="group flex flex-col rounded-2xl border border-white/10 bg-black/50 overflow-hidden shadow-lg hover:border-amber-400 hover:bg-black/70 transition"
               >
-
                 {/* imagem */}
                 <div className="relative w-full aspect-[16/9] overflow-hidden">
-                <Image
+                  <Image
                     src={devo.coverImage}
                     alt={devo.title}
                     fill
+                    unoptimized // evita o erro de private ip no dev
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
-                <p className="absolute left-4 bottom-3 text-[11px] uppercase tracking-[0.18em] text-amber-200">
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                  <p className="absolute left-4 bottom-3 text-[11px] uppercase tracking-[0.18em] text-amber-200">
                     {dateLabel} · {devo.readingRef}
-                </p>
+                  </p>
                 </div>
-
 
                 {/* texto */}
                 <div className="flex-1 px-4 py-3 flex flex-col">

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { ReactNode } from "react";
+import { signOut, useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -9,12 +11,24 @@ interface AppLayoutProps {
   subtitle?: string;
 }
 
+type AppRole = "MEMBER" | "LEADER" | "ADMIN";
+
 export function AppLayout({ children, title, subtitle }: AppLayoutProps) {
+  const { data: session, status } = useSession();
+  const isAuth = status === "authenticated" && session?.user;
+  const role = (session?.user as any)?.role as AppRole | undefined;
+
+  const pathname = usePathname();
+  const isPanelRoute =
+    pathname.startsWith("/member") ||
+    pathname.startsWith("/leader") ||
+    pathname.startsWith("/admin");
+
   return (
     <div className="min-h-screen bg-[#020617] bg-gradient-to-br from-[#020617] via-[#02081a] to-[#020617] text-white">
       {/* topo */}
       <header className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-full border border-amber-400 flex items-center justify-center text-amber-400 text-lg font-semibold">
             IF
           </div>
@@ -26,23 +40,65 @@ export function AppLayout({ children, title, subtitle }: AppLayoutProps) {
               Jornada de leitura e devoção
             </p>
           </div>
-        </div>
+        </Link>
 
         <nav className="flex items-center gap-4 text-sm">
-          <Link href="/dashboard" className="hover:text-amber-300">
-            Painel
-          </Link>
-          <Link href="/admin" className="hover:text-amber-300">
-            Admin
-          </Link>
-          <form action="/api/auth/signout" method="post">
-            <button
-              type="submit"
-              className="rounded-full border border-white/20 px-4 py-1.5 text-xs hover:border-amber-400 hover:text-amber-300"
-            >
-              Sair
-            </button>
-          </form>
+          {!isAuth && (
+            <>
+              <Link
+                href="/login"
+                className="text-gray-200 hover:text-amber-300 transition"
+              >
+                Entrar
+              </Link>
+              <Link
+                href="/register"
+                className="rounded-full bg-amber-500 px-4 py-1.5 text-xs font-semibold text-slate-950 hover:bg-amber-400 transition"
+              >
+                Criar conta
+              </Link>
+            </>
+          )}
+
+          {isAuth && (
+            <>
+              {/* Se estiver em rota de painel (/member, /leader, /admin),
+                  mostramos "Início" para voltar à landing.
+                 Se estiver fora (ex.: alguma outra área), mostramos "Painel". */}
+              {isPanelRoute ? (
+                <Link
+                  href="/"
+                  className="hover:text-amber-300 transition"
+                >
+                  Início
+                </Link>
+              ) : (
+                <Link
+                  href="/dashboard"
+                  className="hover:text-amber-300 transition"
+                >
+                  Painel
+                </Link>
+              )}
+
+              {role === "ADMIN" && (
+                <Link
+                  href="/admin/users"
+                  className="hover:text-amber-300 transition"
+                >
+                  Admin
+                </Link>
+              )}
+
+              <button
+                type="button"
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="rounded-full border border-white/20 px-4 py-1.5 text-xs hover:border-amber-400 hover:text-amber-300"
+              >
+                Sair
+              </button>
+            </>
+          )}
         </nav>
       </header>
 
