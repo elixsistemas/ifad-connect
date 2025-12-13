@@ -40,7 +40,7 @@ export default async function AdminPlansPage() {
 
   try {
     const data = await strapiQuery<ReadingPlansFromStrapi>(PLANS_QUERY);
-    plans = data.readingPlans?.data ?? [];
+    plans = data?.readingPlans?.data ?? [];
   } catch (err) {
     console.error("[AdminPlansPage] Erro ao buscar planos de leitura", err);
   }
