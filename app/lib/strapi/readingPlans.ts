@@ -18,9 +18,6 @@ export interface ReadingPlan {
   devotionals: DevotionalSummary[];
 }
 
-/**
- * Tipagem da resposta vinda do Strapi (GraphQL/REST)
- */
 interface RawDevotional {
   documentId: string;
   title: string;
@@ -38,10 +35,16 @@ interface RawReadingPlan {
   devotionals?: RawDevotional[] | RawDevotional | null;
 }
 
-// queries como STRING, igual você já usa nos devocionais
+/**
+ * Algumas instalações do Strapi aceitam:
+ * sort: "title:asc"
+ * Outras exigem:
+ * sort: ["title:asc"]
+ * Aqui usamos o formato mais compatível.
+ */
 const READING_PLANS_QUERY = /* GraphQL */ `
   query ReadingPlans {
-    readingPlans(sort: "title:asc") {
+    readingPlans(sort: ["title:asc"]) {
       documentId
       title
       slug
@@ -77,18 +80,29 @@ const READING_PLAN_BY_SLUG_QUERY = /* GraphQL */ `
   }
 `;
 
-function sortDevotionals(devotionals: RawReadingPlan["devotionals"]): DevotionalSummary[] {
+function normalizeDevotionals(
+  devotionals: RawReadingPlan["devotionals"]
+): RawDevotional[] {
   if (!devotionals) return [];
+  return Array.isArray(devotionals) ? devotionals : [devotionals];
+}
 
-  // Se vier um único objeto, transforma em array
-  const list = Array.isArray(devotionals) ? devotionals : [devotionals];
+function sortDevotionals(
+  devotionals: RawReadingPlan["devotionals"]
+): DevotionalSummary[] {
+  const list = normalizeDevotionals(devotionals);
 
-  return list
-    .filter(Boolean)
+  // type guard pra TS parar de reclamar
+  const onlyValid = list.filter(
+    (d): d is RawDevotional =>
+      Boolean(d && d.documentId && d.title && d.slug)
+  );
+
+  return onlyValid
     .sort((a, b) => {
-      if (!a.date || !b.date) return 0;
-      // YYYY-MM-DD ordena bem como string
-      return a.date.localeCompare(b.date);
+      const ad = a.date ?? "";
+      const bd = b.date ?? "";
+      return ad.localeCompare(bd);
     })
     .map((d) => ({
       id: d.documentId,
@@ -99,10 +113,11 @@ function sortDevotionals(devotionals: RawReadingPlan["devotionals"]): Devotional
 }
 
 export async function getReadingPlans(): Promise<ReadingPlan[]> {
-  const data = await strapiQuery<{
-    readingPlans: RawReadingPlan[];
-  }>(READING_PLANS_QUERY);
+  const data = await strapiQuery<{ readingPlans: RawReadingPlan[] }>(
+    READING_PLANS_QUERY
+  );
 
+  // strapiQuery pode retornar null (fallback mode)
   const list = data?.readingPlans ?? [];
 
   return list.map((plan) => ({
@@ -119,9 +134,10 @@ export async function getReadingPlans(): Promise<ReadingPlan[]> {
 export async function getReadingPlanBySlug(
   slug: string
 ): Promise<ReadingPlan | null> {
-  const data = await strapiQuery<{
-    readingPlans: RawReadingPlan[];
-  }>(READING_PLAN_BY_SLUG_QUERY, { slug });
+  const data = await strapiQuery<{ readingPlans: RawReadingPlan[] }>(
+    READING_PLAN_BY_SLUG_QUERY,
+    { slug }
+  );
 
   const node = (data?.readingPlans ?? [])[0];
   if (!node) return null;

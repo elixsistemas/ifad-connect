@@ -3,18 +3,23 @@
 const STRAPI_GRAPHQL_URL = process.env.STRAPI_GRAPHQL_URL;
 const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN;
 
+export function isStrapiConfigured() {
+  return Boolean(STRAPI_GRAPHQL_URL && STRAPI_API_TOKEN);
+}
+
 if (!STRAPI_GRAPHQL_URL) {
   console.warn(
-    "[strapiClient] STRAPI_GRAPHQL_URL não definido em process.env. A integração com devocionais/planos não vai funcionar."
+    "[strapiClient] STRAPI_GRAPHQL_URL não definido em process.env. A integração com devocionais/planos vai usar fallback."
   );
 }
 
 export async function strapiQuery<TData = any>(
   query: string,
   variables?: Record<string, any>
-): Promise<TData> {
+): Promise<TData | null> {
+  // NÃO derruba a aplicação: permite fallback local
   if (!STRAPI_GRAPHQL_URL) {
-    throw new Error("STRAPI_GRAPHQL_URL não está definido.");
+    return null;
   }
 
   const res = await fetch(STRAPI_GRAPHQL_URL, {
@@ -29,21 +34,20 @@ export async function strapiQuery<TData = any>(
       query,
       variables: variables ?? {},
     }),
-    // evita cache agressivo no painel admin
     cache: "no-store",
   });
 
   if (!res.ok) {
     const text = await res.text();
     console.error("[strapiQuery] HTTP error", res.status, text);
-    throw new Error(`Erro ao consultar Strapi (status ${res.status}).`);
+    return null; // deixa o caller usar fallback
   }
 
   const json = await res.json();
 
   if (json.errors) {
     console.error("[strapiQuery] GraphQL errors", json.errors);
-    throw new Error("Erro GraphQL ao consultar Strapi.");
+    return null; // deixa o caller usar fallback
   }
 
   return json.data as TData;
