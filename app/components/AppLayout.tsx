@@ -15,10 +15,15 @@ type AppRole = "MEMBER" | "LEADER" | "ADMIN";
 
 export function AppLayout({ children, title, subtitle }: AppLayoutProps) {
   const { data: session, status } = useSession();
-  const isAuth = status === "authenticated" && session?.user;
+
+  // garante boolean puro
+  const isAuth: boolean = status === "authenticated" && !!session?.user;
   const role = (session?.user as any)?.role as AppRole | undefined;
 
-  const pathname = usePathname();
+  // em algumas tipagens o pathname pode ser null → protege
+  const rawPathname = usePathname();
+  const pathname = rawPathname ?? "";
+
   const isPanelRoute =
     pathname.startsWith("/member") ||
     pathname.startsWith("/leader") ||
@@ -62,14 +67,8 @@ export function AppLayout({ children, title, subtitle }: AppLayoutProps) {
 
           {isAuth && (
             <>
-              {/* Se estiver em rota de painel (/member, /leader, /admin),
-                  mostramos "Início" para voltar à landing.
-                 Se estiver fora (ex.: alguma outra área), mostramos "Painel". */}
               {isPanelRoute ? (
-                <Link
-                  href="/"
-                  className="hover:text-amber-300 transition"
-                >
+                <Link href="/" className="hover:text-amber-300 transition">
                   Início
                 </Link>
               ) : (
@@ -126,3 +125,5 @@ export function AppLayout({ children, title, subtitle }: AppLayoutProps) {
     </div>
   );
 }
+
+export default AppLayout;

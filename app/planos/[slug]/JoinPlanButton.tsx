@@ -28,7 +28,8 @@ export function JoinPlanButton({
     setFeedback(null);
 
     if (status === "unauthenticated") {
-      router.push(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
+      const current = pathname || "/planos";
+      router.push(`/login?callbackUrl=${encodeURIComponent(current)}`);
       return;
     }
 
@@ -50,12 +51,13 @@ export function JoinPlanButton({
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
 
       if (!res.ok) {
-        setError(data?.error || "Não foi possível salvar seu progresso.");
+        setError(
+          (data as any)?.error || "Não foi possível salvar seu progresso."
+        );
       } else {
-        // pode ter sido criação ou reaproveitamento da run
         setFeedback(
           hasActiveRun
             ? "Seu plano está atualizado."

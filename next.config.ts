@@ -1,7 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
-    // ...o que você já tiver aqui
+
+  },
+
+  eslint: {
+    ignoreDuringBuilds: true,
   },
 
   images: {

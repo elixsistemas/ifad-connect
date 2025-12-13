@@ -17,7 +17,7 @@ export default async function AdminHomePage() {
   if (role !== "ADMIN") {
     redirect("/dashboard");
   }
-
+  
   const ONLINE_WINDOW_MS = 10 * 60 * 1000; // 10 minutos
   const onlineThreshold = new Date(Date.now() - ONLINE_WINDOW_MS);
 

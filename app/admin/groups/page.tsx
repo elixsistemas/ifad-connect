@@ -6,8 +6,8 @@ import { requireAdmin } from "@/app/lib/auth-guards";
 export default async function AdminGroupsPage() {
   await requireAdmin("/admin/groups");
 
-  const ONLINE_WINDOW_MS = 10 * 60 * 1000; // 10 minutos
-  const onlineThreshold = new Date(Date.now() - ONLINE_WINDOW_MS);
+    const ONLINE_WINDOW_MS = 10 * 60 * 1000;
+    const onlineThreshold = new Date(Date.now() - ONLINE_WINDOW_MS);
 
   const [leaders, membersWithoutLeader] = await Promise.all([
     prisma.user.findMany({

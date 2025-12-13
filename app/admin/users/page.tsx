@@ -17,7 +17,7 @@ type UserForClient = {
 
 export default async function AdminUsersPage() {
   // garante que só ADMIN entra e já trata redirect
-  const session = await requireAdmin("/admin/users");
+  const _session = await requireAdmin("/admin/users");
 
   // registra atividade do admin ao abrir a tela
   await touchUserActivity();
@@ -36,7 +36,7 @@ export default async function AdminUsersPage() {
   });
 
   const now = Date.now();
-  const ONLINE_WINDOW_MS = 10 * 60 * 1000; // 10 minutos, igual ao painel admin
+  const ONLINE_WINDOW_MS = 10 * 60 * 1000; // 10 minutos
 
   const usersForClient: UserForClient[] = usersFromDb.map((user) => {
     const lastActivity = user.lastActivityAt?.getTime() ?? 0;
