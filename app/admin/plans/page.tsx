@@ -36,14 +36,15 @@ const PLANS_QUERY = /* GraphQL */ `
 export default async function AdminPlansPage() {
   await requireAdmin("/admin/plans");
 
-  let plans: ReadingPlansFromStrapi["readingPlans"]["data"] = [];
+    let plans: any[] = [];
 
-  try {
-    const data = await strapiQuery<ReadingPlansFromStrapi>(PLANS_QUERY);
-    plans = data?.readingPlans?.data ?? [];
-  } catch (err) {
-    console.error("[AdminPlansPage] Erro ao buscar planos de leitura", err);
-  }
+    try {
+      const data = await strapiQuery<ReadingPlansFromStrapi>(PLANS_QUERY);
+      plans = data?.readingPlans?.data ?? [];
+    } catch (err) {
+      console.error("[AdminPlansPage] Erro ao buscar planos de leitura", err);
+      plans = [];
+    }
 
   return (
     <AppLayout

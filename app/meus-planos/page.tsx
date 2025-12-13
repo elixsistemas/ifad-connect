@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { prisma } from "@/app/lib/prisma";
 import { getReadingPlansForUser } from "@/app/lib/readingPlansWithProgress";
 
 export const revalidate = 0; // sempre fresh para o usuário
@@ -10,12 +11,32 @@ export const revalidate = 0; // sempre fresh para o usuário
 export default async function MyReadingPlansPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session || !(session.user as any)?.id) {
-    // se não estiver logado, manda pro login
+  // ✅ pega o id se existir, mas não depende dele
+  const sessionUser = session?.user as any;
+  const sessionUserId = (sessionUser?.id as string | undefined) ?? undefined;
+  const email = (session?.user?.email as string | undefined) ?? undefined;
+
+  if (!session || (!sessionUserId && !email)) {
     redirect("/login?callbackUrl=/meus-planos");
   }
 
-  const userId = (session.user as any).id as string;
+  // ✅ resolve userId com segurança
+  let userId = sessionUserId;
+
+  if (!userId) {
+    const user = await prisma.user.findUnique({
+      where: { email: email! },
+      select: { id: true },
+    });
+
+    if (!user) {
+      // sessão existe mas o user não existe no banco (raro, mas possível)
+      redirect("/login?callbackUrl=/meus-planos");
+    }
+
+    userId = user.id;
+  }
+
   const plans = await getReadingPlansForUser(userId);
 
   return (
@@ -31,9 +52,7 @@ export default async function MyReadingPlansPage() {
               <p className="text-xs uppercase tracking-[0.25em] text-amber-400">
                 IFAD CONNECT
               </p>
-              <p className="text-sm text-gray-300">
-                Seus planos de leitura
-              </p>
+              <p className="text-sm text-gray-300">Seus planos de leitura</p>
             </div>
           </div>
 
@@ -58,8 +77,8 @@ export default async function MyReadingPlansPage() {
             Meus planos
           </h1>
           <p className="text-sm text-gray-300 max-w-2xl">
-            Aqui você acompanha os planos de leitura que já começou,
-            com seu progresso salvo na conta IFAD Connect.
+            Aqui você acompanha os planos de leitura que já começou, com seu
+            progresso salvo na conta IFAD Connect.
           </p>
         </section>
 
@@ -67,12 +86,8 @@ export default async function MyReadingPlansPage() {
         <section className="space-y-3">
           {plans.length === 0 && (
             <p className="text-sm text-slate-400">
-              Você ainda não começou nenhum plano de leitura.
-              Acesse{" "}
-              <Link
-                href="/planos"
-                className="text-amber-300 hover:underline"
-              >
+              Você ainda não começou nenhum plano de leitura. Acesse{" "}
+              <Link href="/planos" className="text-amber-300 hover:underline">
                 a página de planos
               </Link>{" "}
               para iniciar o primeiro.
@@ -85,10 +100,14 @@ export default async function MyReadingPlansPage() {
             const totalRuns = summary?.totalRuns ?? 0;
             const completedRuns = summary?.completedRuns ?? 0;
 
-            // progresso em % para uma barrinha simples
             const totalDays =
-              activeRun?.totalDays || plan.durationDays || plan.devotionals.length || 0;
+              activeRun?.totalDays ||
+              plan.durationDays ||
+              plan.devotionals.length ||
+              0;
+
             const currentDay = activeRun?.currentDay ?? 0;
+
             const progressPercent =
               totalDays > 0
                 ? Math.min(100, Math.round((currentDay / totalDays) * 100))
@@ -100,12 +119,10 @@ export default async function MyReadingPlansPage() {
                 href={`/planos/${plan.slug}`}
                 className="group flex items-center gap-4 rounded-2xl border border-slate-700 bg-slate-900/80 p-4 hover:border-amber-400 hover:bg-slate-900 transition"
               >
-                {/* Capa compacta */}
                 <div className="h-16 w-16 flex-shrink-0 rounded-xl bg-gradient-to-br from-amber-500/70 via-amber-600/60 to-slate-950 flex items-center justify-center text-center text-[10px] font-semibold text-slate-950">
                   {totalDays ? (
                     <span>
-                      {totalDays}{" "}
-                      {totalDays === 1 ? "Dia" : "Dias"}
+                      {totalDays} {totalDays === 1 ? "Dia" : "Dias"}
                     </span>
                   ) : (
                     <span>Plano</span>
@@ -118,6 +135,7 @@ export default async function MyReadingPlansPage() {
                       <p className="text-sm font-semibold text-slate-50 group-hover:text-amber-200">
                         {plan.title}
                       </p>
+
                       {activeRun && (
                         <p className="text-[11px] text-slate-400">
                           Execução #{activeRun.iteration} · Dia{" "}
@@ -127,25 +145,21 @@ export default async function MyReadingPlansPage() {
                             : ""}
                         </p>
                       )}
+
                       {!activeRun && completedRuns > 0 && (
                         <p className="text-[11px] text-emerald-300">
                           {completedRuns}{" "}
-                          {completedRuns === 1
-                            ? "conclusão"
-                            : "conclusões"}{" "}
+                          {completedRuns === 1 ? "conclusão" : "conclusões"}{" "}
                           deste plano
                         </p>
                       )}
                     </div>
 
                     <span className="text-[11px] text-slate-500">
-                      {totalRuns > 0 && (
-                        <>Execuções: {totalRuns}</>
-                      )}
+                      {totalRuns > 0 && <>Execuções: {totalRuns}</>}
                     </span>
                   </div>
 
-                  {/* Barrinha de progresso simples */}
                   {totalDays > 0 && activeRun && (
                     <div className="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
                       <div
